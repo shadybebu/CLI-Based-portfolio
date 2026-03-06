@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vaibhav Badoni | Portfolio</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏴‍☠️</text></svg>">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        :root {
+            --bg:        #010c10;
+            --green:     #00ff41;
+            --green-dim: #00c030;
+            --green-mute:#0a3d1e;
+            --green-glow:#00ff4133;
+            --prompt:    #39ff14;
+            --white:     #e8ffe8;
+            --red:       #ff3333;
+            --font:      'Share Tech Mono', 'Courier New', monospace;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body, html {
+            height: 100%;
+            background: var(--bg);
+            color: var(--green);
+            font-family: var(--font);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* ====== BACKGROUND LAYERS ====== */
+        #bg-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        #scanlines {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                to bottom,
+                transparent 0px,
+                transparent 3px,
+                rgba(0,0,0,0.15) 3px,
+                rgba(0,0,0,0.15) 4px
+            );
+        }
+
+        #vignette {
+            position: fixed;
+            inset: 0;
+            z-index: 2;
+            pointer-events: none;
+            background: radial-gradient(ellipse at center,
+                transparent 35%,
+                rgba(0,0,0,0.5) 70%,
+                rgba(0,0,0,0.92) 100%
+            );
+        }
+
+        /* ====== TERMINAL SHELL ====== */
+        #terminal-container {
+            position: relative;
+            z-index: 10;
+            width: 90%;
+            max-width: 1020px;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+            background: rgba(1, 12, 8, 0.78);
+            border: 1px solid #0d4a22;
+            border-radius: 6px;
+            box-shadow:
+                0 0 0 1px #00ff410d,
+                0 0 50px #00ff4115,
+                0 0 100px #00ff410a,
+                inset 0 0 80px rgba(0,255,65,0.025);
+            padding: 0 0 14px;
+            overflow: hidden;
+        }
+
+        /* Chrome bar */
+        #chrome-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            background: rgba(0,255,65,0.04);
+            border-bottom: 1px solid #0d4a22;
+            flex-shrink: 0;
+        }
+        .chrome-dot {
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .chrome-dot.red    { background: #ff5f57; box-shadow: 0 0 7px #ff5f5799; }
+        .chrome-dot.yellow { background: #febc2e; box-shadow: 0 0 7px #febc2e99; }
+        .chrome-dot.green  { background: #28c840; box-shadow: 0 0 7px #28c84099; }
+        #chrome-title {
+            flex: 1;
+            text-align: center;
+            font-size: 11px;
+            color: #1a6630;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        /* inner padding wrapper */
+        #inner {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+            padding: 16px 22px 0;
+        }
+
+        /* ====== TOP BANNER ====== */
+        #top-banner {
+            display: flex;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        #ascii-art {
+            font-size: 5.6px;
+            line-height: 1.02;
+            margin-right: 28px;
+            white-space: pre;
+            color: #0d3d1a;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        #intro-text {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 5px;
+        }
+        #intro-text p { line-height: 1.6; font-size: 13.5px; }
+        #welcome-msg { color: #00b030; font-size: 12.5px; letter-spacing: 0.5px; min-height: 18px; }
+
+        /* ====== OUTPUT ====== */
+        #terminal-output {
+            flex-grow: 1;
+            overflow-y: auto;
+            margin-bottom: 6px;
+            white-space: pre-wrap;
+        }
+
+        /* ====== INPUT ====== */
+        #autocomplete-hint {
+            color: #0d4a22;
+            font-size: 11px;
+            min-height: 16px;
+            margin-bottom: 3px;
+            letter-spacing: 1px;
+            flex-shrink: 0;
+        }
+
+        #input-line {
+            display: flex;
+            align-items: center;
+            border-top: 1px solid #0d4a22;
+            padding-top: 10px;
+            flex-shrink: 0;
+        }
+
+        #prompt {
+            color: var(--prompt);
+            white-space: nowrap;
+            text-shadow: 0 0 10px var(--prompt), 0 0 20px #39ff1444;
+            margin-right: 10px;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        #command-input {
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            color: var(--green);
+            font-family: var(--font);
+            font-size: 14px;
+            outline: none;
+            caret-color: transparent;
+        }
+
+        #cursor-blink {
+            display: inline-block;
+            width: 9px; height: 14px;
+            background: var(--green);
+            animation: blink 1s step-end infinite;
+            vertical-align: middle;
+            box-shadow: 0 0 8px var(--green);
+            flex-shrink: 0;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+        /* ====== TEXT STYLES ====== */
+        .command-history { color: #3a6b44; margin-top: 4px; }
+        .response { margin-bottom: 14px; line-height: 1.7; }
+        .highlight { font-weight: bold; color: var(--white); text-shadow: 0 0 5px #ffffff33; }
+        .error { color: var(--red); text-shadow: 0 0 8px #ff333355; }
+        a { color: var(--green-dim); text-decoration: underline; }
+        a:hover { color: var(--white); text-shadow: 0 0 8px var(--green); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #0d4a22; border-radius: 3px; }
+
+        /* ====== MOBILE ====== */
+        @media (max-width: 600px) {
+            #ascii-art { display: none; }
+            #terminal-container { height: 97vh; width: 98%; }
+            #inner { padding: 12px 14px 0; }
+            #intro-text p, #command-input, #prompt { font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div id="scanlines"></div>
+<div id="vignette"></div>
+
+<div id="terminal-container">
+    <div id="chrome-bar">
+        <div class="chrome-dot red"></div>
+        <div class="chrome-dot yellow"></div>
+        <div class="chrome-dot green"></div>
+        <span id="chrome-title">shadybebu@localhost — bash — 120×40</span>
+    </div>
+
+    <div id="inner">
+        <div id="top-banner">
+            <pre id="ascii-art">
+            .      .                                                .            .                
+                .            .                             .                                        
+                                                                .                         .         
+           .                       .                                                                
+                             .                              .                                       
+                . .          .                         .                                            
+                     .                 .                               .                        .   
+                                     .                                                              
+                                                                    .                               
+                 .  . .                    :*#%%#######*+==:                                        
+      . .           .            .     =%%%@%#####%%#########*:                             .    .  
+           .                          =%%%%@%%%%#%%%##%%##%%%#=               .                     
+   .                   .   .         .#%%%%%%%%%%%%%%%%%%%%%%%+                                     
+                                     :#%%%%@@%%*=-------==++#%+                                     
+                   .                 :#%%%%%#*+=+====++++===+#+.                                    
+  .           . .                    :#%%%%%##+--==+*###*+==-=*#:               .             ..    
+                    .                :#%@@@%##+-:-=+===+*+:.:=*#:                     .   .         
+            .                       .:#@@@@@%**##########***+*+-.                                   
+                                     :#@@@@@@@%%%%%#%%%%%%%###=   .      .      .                   
+        .                       .    :%@@@@@@@@%%%%%%%%%%%%%%%+                                     
+                 .       .       :---=%@@@@@@@@@@%%%%%%%%%%%@%=                   .              .  
+                              :+**###%%@@%%%@@@@@@@@%%%%@@@@@%:                    ..     .         
+                           .:-+*+++**####+==+#%%@@@@@@@@@@%%#+==:          .               .        
+                            ****++=====+#-::-=+*#%%@@@@%**+++=---====+=               .             
+       .                   .#*#*+++====+#-::-=====+*#%#*+==+*=::-===++=                             
+ .       .             .   -###**++++==*#-::-++=====*#+===+**=::-=++++*.                            
+                           =###******==*#+===+**+===+*+=+****+====+****-              .             
+  .               .        *%%%#########%+===+***+++*#*+****#+==+######= .                          
+  .                  .     ##%#*++++**##%+===+**+*+**#*+==++++==+***+++=.                           
+            .              %#%#*++++**##%+++++*+****##*+++++**++****++*+.                           
+                          :%#%#**+++**##%***********##****+*###**#**+***.              .            
+      .                   =%%%#####*###%%**********####*****###**#######:                           
+  .       .               *###******###%@#*##########%#############*****-               .           
+                      .   ####***++**##%@%#*********##********#@%#***++*=   .                       
+            .            .%#%#***+***##%@%#*********###*******#@%#******+                         . 
+               .         :%%%##******#%##*+========+*##*#****##@%########    .                      
+       .                 -#%%#########%%############*===--===--*%##******.                          
+  .                      *###*******##%%#**++++++##*+-==-:====-+%##******:                        . 
+                         %%%#*******##%%#**======+++****-:--**#%@########=                          
+                         :@%%########%@%%*+++++++++**##***==*#%@@%%%%%%%*         .   .           
+            .       .    -@@%%%%%@@@%%@@@%%########*#%########%@@@%%@@@%%.                      .   
+                         *@@@%%@@@@%*-#@@%#####%%%%%%%%%%%%%%#%@@@%%@@%%%:               .          
+                         +@@@%%%%@@%+.*%%%##########@##*****#*.   :..     .                         
+                          .    ..---:.*#%###******#%@##******+:    .                                
+                                     :*##********##%@##*******:   .                                 
+                  .                  :*##********##%@%#*******:      .                     .        
+                                   . -*#*********##@@%#*******-      .                     .    .   
+                                .    =*#*********##@@%#*******=                                     
+    .    .         .               . =*#*********##@@%#*******=  .                                  
+                 .            .   .  =*#*******####@@%####****=. ..     .      .                    
+   . .         .  .                  +*#***########@@%#######*+.                                    
+   .        .                       .**#********##%@@%##******+.                                    
+                                    .**#*********#%@@@##*******:                                   .
+                           .        .*#*********##%@@@%#*******:    .      .                        
+     .   .                          :*#*********##%@@@%###*****-     .                .             
+                                    -%%*******####*@@@%########=              .  .            .     
+                  .                 =%%%##########-@@@%%#####%%+         .                  .       
+              .              .      +%@@%%%#%%#%%#:@@@@%%######* .                
+         .   .                 .    *%%%%%#######+ @@@@%######%* .                              
+             .          .      .    #%%%%######%#- @@@@%%%%#####*=                      .           
+                    .           .   %%%%#########*.%@@@@%#########:     .  .       .                
+     .                             :@%%%%%########%@@@@@@%########=        .     .                . 
+                                   .%@@%@%########%. +@@@%#%%%%%%%+                    .            
+                       .              #@@%%%%%%%%%%    .#@%%#+-.                                    
+                                        *%%%##*+=--             .           ..                      
+                 .                                   .                                              
+      .                                             .                                  .            
+                                                                            .                       
+         .  .                                                               .                       
+   .                 .         .                              .                         .           
+                                                                                     .           .                                
+</pre>
+            <div id="intro-text">
+                <p><span class="highlight">Name:</span> Vaibhav Badoni</p>
+                <p><span class="highlight">Role:</span> Cybersecurity Analyst &amp; Penetration Tester</p>
+                <p><span class="highlight">About:</span> Specializing in threat detection, incident response, host &amp; network security.</p>
+                <p id="welcome-msg"></p>
+            </div>
+        </div>
+
+        <div id="terminal-output"></div>
+        <div id="autocomplete-hint"></div>
+
+        <div id="input-line">
+            <span id="prompt">shadybebu@localhost$&nbsp;</span>
+            <input type="text" id="command-input" autocomplete="off" spellcheck="false" autofocus>
+            <span id="cursor-blink"></span>
+        </div>
+    </div>
+</div>
+
+<script>
+/* =============================================================
+   ANIMATED BACKGROUND
+   Three layers:
+   1. Matrix symbol rain (columns of falling chars)
+   2. Drifting real security commands
+   3. Hex node network (dots + connection lines)
+   ============================================================= */
+(function () {
+    const canvas = document.getElementById('bg-canvas');
+    const ctx    = canvas.getContext('2d');
+
+    const SYMBOLS = '01アイウエオカキクケコサシスセソ>_$#{}[]<>!=+-*%^&?;:~ABCDEF0123456789'.split('');
+    const CMDS = [
+        'nmap -sV -p 1-65535 10.0.0.1',
+        'sudo tcpdump -i eth0 -w capture.pcap',
+        'grep -r "FAILED PASSWORD" /var/log/auth.log',
+        'python3 scanner.py --target 192.168.1.0/24',
+        'ssh -i ~/.ssh/id_rsa root@10.10.10.5',
+        'use exploit/multi/handler',
+        'set PAYLOAD windows/meterpreter/reverse_tcp',
+        'wireshark -i eth0 -k -f "tcp port 443"',
+        'splunk search index=main sourcetype=syslog error',
+        'hashcat -m 1000 hashes.txt rockyou.txt',
+        'john --wordlist=/usr/share/wordlists/rockyou.txt hash',
+        'openssl s_client -connect target.com:443',
+        'iptables -A INPUT -p tcp --dport 22 -j DROP',
+        'cat /etc/passwd | grep -v nologin',
+        'volatility -f memory.dmp --profile=Win10x64 pslist',
+        'strings malware.exe | grep -i "http"',
+        'curl -s https://api.shodan.io/shodan/host/search',
+        'gobuster dir -u http://target -w wordlist.txt',
+        'sqlmap -u "http://target/page?id=1" --dbs',
+    ];
+
+    let W, H;
+    function resize() {
+        W = canvas.width  = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', () => { resize(); initRain(); });
+
+    /* ---------- 1. MATRIX RAIN ---------- */
+    const COL_W = 16;
+    let cols, drops, speeds;
+    function initRain() {
+        cols   = Math.floor(W / COL_W) + 1;
+        drops  = Array.from({length: cols}, () => Math.random() * -(H / 14));
+        speeds = Array.from({length: cols}, () => 0.25 + Math.random() * 0.55);
+    }
+    initRain();
+
+    function drawRain() {
+        ctx.font = '13px Share Tech Mono, monospace';
+        for (let i = 0; i < cols; i++) {
+            const sym = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
+            const x   = i * COL_W;
+            const y   = drops[i] * 14;
+            const a   = 0.06 + Math.random() * 0.10;
+
+            // bright head glyph
+            ctx.fillStyle = `rgba(160,255,180,${Math.min(a * 2.8, 0.55)})`;
+            ctx.fillText(sym, x, y);
+
+            // one dim symbol above
+            ctx.fillStyle = `rgba(0, 160, 50, ${a * 0.6})`;
+            ctx.fillText(SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)], x, y - 14);
+
+            if (y > H && Math.random() > 0.977) drops[i] = 0;
+            drops[i] += speeds[i];
+        }
+    }
+
+    /* ---------- 2. FLOATING COMMAND LINES ---------- */
+    class CmdLine {
+        constructor(init) {
+            this.reset(init);
+        }
+        reset(init) {
+            this.text  = CMDS[Math.floor(Math.random() * CMDS.length)];
+            this.x     = Math.random() * (W * 0.9);
+            this.y     = init ? Math.random() * H : H + 22;
+            this.vy    = 0.15 + Math.random() * 0.28;
+            this.alpha = 0.038 + Math.random() * 0.072;
+            this.size  = 10 + Math.random() * 4;
+        }
+        update() { this.y -= this.vy; if (this.y < -20) this.reset(false); }
+        draw() {
+            ctx.save();
+            ctx.globalAlpha = this.alpha;
+            ctx.fillStyle   = '#00ff41';
+            ctx.font        = `${this.size}px Share Tech Mono, monospace`;
+            ctx.fillText('$ ' + this.text, this.x, this.y);
+            ctx.restore();
+        }
+    }
+    const cmdLines = Array.from({length: 20}, () => new CmdLine(true));
+
+    /* ---------- 3. HEX NODE NETWORK ---------- */
+    class Node {
+        constructor(init) { this.reset(init); }
+        reset(init) {
+            this.x     = Math.random() * W;
+            this.y     = init ? Math.random() * H : Math.random() * H;
+            this.vx    = (Math.random() - 0.5) * 0.3;
+            this.vy    = (Math.random() - 0.5) * 0.3;
+            this.r     = 1.5 + Math.random() * 2;
+            this.alpha = 0.25 + Math.random() * 0.45;
+            this.label = '0x' + Math.floor(Math.random() * 0xffffff).toString(16).toUpperCase().padStart(6,'0');
+        }
+        update() {
+            this.x += this.vx; this.y += this.vy;
+            if (this.x < 0 || this.x > W) this.vx *= -1;
+            if (this.y < 0 || this.y > H) this.vy *= -1;
+        }
+        draw() {
+            // glow halo
+            const g = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.r * 7);
+            g.addColorStop(0, `rgba(0,255,65,${this.alpha * 0.8})`);
+            g.addColorStop(1, 'transparent');
+            ctx.save();
+            ctx.globalAlpha = 1;
+            ctx.fillStyle   = g;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.r * 7, 0, Math.PI*2);
+            ctx.fill();
+            // hard core dot
+            ctx.globalAlpha = this.alpha;
+            ctx.fillStyle   = '#00ff41';
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
+            ctx.fill();
+            // hex label
+            ctx.globalAlpha = this.alpha * 0.22;
+            ctx.font        = '8px Share Tech Mono, monospace';
+            ctx.fillStyle   = '#00ff41';
+            ctx.fillText(this.label, this.x + 5, this.y + 3);
+            ctx.restore();
+        }
+    }
+
+    const NODES = Array.from({length: 60}, () => new Node(true));
+    const MAX_DIST = 140;
+
+    function drawConnections() {
+        for (let i = 0; i < NODES.length; i++) {
+            for (let j = i + 1; j < NODES.length; j++) {
+                const dx = NODES[i].x - NODES[j].x;
+                const dy = NODES[i].y - NODES[j].y;
+                const d  = Math.sqrt(dx*dx + dy*dy);
+                if (d < MAX_DIST) {
+                    ctx.save();
+                    ctx.globalAlpha = (1 - d / MAX_DIST) * 0.065;
+                    ctx.strokeStyle = '#00ff41';
+                    ctx.lineWidth   = 0.6;
+                    ctx.beginPath();
+                    ctx.moveTo(NODES[i].x, NODES[i].y);
+                    ctx.lineTo(NODES[j].x, NODES[j].y);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
+        }
+    }
+
+    /* ---------- MAIN LOOP ---------- */
+    function frame() {
+        // semi-transparent fill = trailing fade
+        ctx.fillStyle = 'rgba(1, 12, 8, 0.17)';
+        ctx.fillRect(0, 0, W, H);
+
+        drawRain();
+        drawConnections();
+        NODES.forEach(n => { n.update(); n.draw(); });
+        cmdLines.forEach(l => { l.update(); l.draw(); });
+
+        requestAnimationFrame(frame);
+    }
+    frame();
+})();
+
+
+/* =============================================================
+   TERMINAL LOGIC
+   ============================================================= */
+const outputDiv        = document.getElementById('terminal-output');
+const commandInput     = document.getElementById('command-input');
+const autocompleteHint = document.getElementById('autocomplete-hint');
+const welcomeMsg       = document.getElementById('welcome-msg');
+
+// Welcome typewriter
+const welcomeText = '> Initializing secure shell... Type \'ls\' to begin.';
+let wi = 0;
+(function typeWelcome() {
+    if (wi < welcomeText.length) {
+        welcomeMsg.textContent += welcomeText.charAt(wi++);
+        setTimeout(typeWelcome, 36);
+    }
+})();
+
+function openResume() {
+    window.open('https://drive.google.com/file/d/11EjRF37fj8sJWPw5ryXN8Q113UQyMdYv/view?usp=sharing', '_blank');
+}
+
+const commands = {
+    'help': {
+        response:
+            '<span class="highlight">AVAILABLE COMMANDS</span>\n' +
+            '  ls        — list all sections\n' +
+            '  about     — who I am\n' +
+            '  resume    — education & certifications\n' +
+            '  projects  — what I\'ve built\n' +
+            '  skills    — domain expertise\n' +
+            '  tools     — software & tech stack\n' +
+            '  contact   — get in touch\n' +
+            '  clear     — clear the terminal\n\n' +
+            '<span class="highlight">SHORTCUTS</span>  ↑↓ history  |  Tab autocomplete'
+    },
+    'ls': {
+        response: '<span class="highlight">about</span>    <span class="highlight">resume</span>    <span class="highlight">projects</span>    <span class="highlight">skills</span>    <span class="highlight">tools</span>    <span class="highlight">contact</span>'
+    },
+    'about': {
+        response:
+            '<span class="highlight">[ SUMMARY ]</span>\n' +
+            'Highly motivated individual seeking a challenging role in Cybersecurity.\n' +
+            'Leveraging foundational knowledge in network security, threat detection, and incident response.\n\n' +
+            '<span class="highlight">[ CURRENTLY FOCUSED ON ]</span>\n' +
+            '  ▸ SOC operations & threat hunting\n' +
+            '  ▸ Cloud Security Operations\n' +
+            '  ▸ Building security automation tools'
+    },
+    'resume': {
+        action: openResume,
+        response:
+            '<span class="highlight">[ ACTION ]</span> Opening resume in a new tab...\n\n' +
+            '<span class="highlight">[ EDUCATION ]</span>\n' +
+            '  Bachelor of Computer Application — Panjab University (2024)  |  CGPA: 7.8/10\n\n' +
+            '<span class="highlight">[ CERTIFICATIONS ]</span>\n' +
+            '  ▸ Google Cybersecurity Professional Certificate  (Coursera, 2024–2034)\n' +
+            '  ▸ eJPT — Junior Penetration Tester              (INE Security, 2025–2028)\n' +
+            '  ▸ ICCA — Cloud Associate                        (INE Security, 2025–2028)\n' +
+            '  ▸ SOC Level 1                                   (TryHackMe, 2026)'
+    },
+    'skills': {
+        response:
+            '<span class="highlight">[ DOMAIN EXPERTISE ]</span>\n' +
+            '  ▸ Security Operations Center (SOC) Analysis\n' +
+            '  ▸ Network Security & Traffic Analysis\n' +
+            '  ▸ Threat Detection & Incident Response\n' +
+            '  ▸ Log Analysis & SIEM Monitoring\n' +
+            '  ▸ Vulnerability Assessment & Penetration Testing\n' +
+            '  ▸ Malware Analysis (static & dynamic)\n' +
+            '  ▸ Security Automation with Python'
+    },
+    'tools': {
+        response:
+            '<span class="highlight">[ SECURITY & MONITORING ]</span>\n' +
+            '  Nmap · Wireshark · Nessus · Splunk · Wazuh\n\n' +
+            '<span class="highlight">[ OFFENSIVE SECURITY ]</span>\n' +
+            '  Burp Suite · Caido · Metasploit · Mimikatz\n\n' +
+            '<span class="highlight">[ DEVELOPMENT ]</span>\n' +
+            '  Python · React · TypeScript · Flask · Postman\n\n' +
+            '<span class="highlight">[ CLOUD ]</span>\n' +
+            '  AWS · Firebase'
+    },
+    'projects': {
+        response:
+            '<span class="highlight">[ SELECTED PROJECTS ]</span>\n\n' +
+            '1. <span class="highlight">Windows Event Log Analyzer</span>\n' +
+            '   Automates security log parsing & alerting using Python.\n' +
+            '   ▸ <a href="https://github.com/shadybebu/window-logger" target="_blank">github.com/shadybebu/window-logger</a>\n\n' +
+            '2. <span class="highlight">Cryptojacking Detection System</span>\n' +
+            '   Full-stack dashboard for real-time resource monitoring & anomaly detection.\n' +
+            '   ▸ <a href="https://github.com/Hardpansara/Cryptojacking_Detection" target="_blank">github.com/Hardpansara/Cryptojacking_Detection</a>\n\n' +
+            '3. <span class="highlight">AI Vulnerable Code Scanner</span>\n' +
+            '   Python CLI tool to detect security vulnerabilities in source code.\n' +
+            '   ▸ <a href="https://github.com/shadybebu/AI-Vulnerable-Code-Scanner" target="_blank">github.com/shadybebu/AI-Vulnerable-Code-Scanner</a>'
+    },
+    'contact': {
+        response:
+            '<span class="highlight">[ CONNECT WITH ME ]</span>\n\n' +
+            '  ♦ Email     ▸ <a href="mailto:vaibhavbadoni10@gmail.com">vaibhavbadoni10@gmail.com</a>\n' +
+            '  ♦ LinkedIn  ▸ <a href="https://linkedin.com/in/vaibhav-badoni" target="_blank">linkedin.com/in/vaibhav-badoni</a>\n' +
+            '  ♦ TryHackMe ▸ <a href="https://tryhackme.com/p/shadybebu" target="_blank">tryhackme.com/p/shadybebu</a>'
+    }
+};
+
+const commandList = [...Object.keys(commands), 'clear', 'cls'];
+let history = [], historyIndex = -1;
+
+commandInput.addEventListener('input', function () {
+    const val = commandInput.value.trim().toLowerCase();
+    if (!val) { autocompleteHint.textContent = ''; return; }
+    const match = commandList.find(c => c.startsWith(val) && c !== val);
+    autocompleteHint.textContent = match ? `⇥  ${match}` : '';
+});
+
+commandInput.addEventListener('keydown', function (e) {
+    const val     = commandInput.value;
+    const trimmed = val.trim().toLowerCase();
+
+    if (e.key === 'Tab') {
+        e.preventDefault();
+        const m = commandList.find(c => c.startsWith(trimmed) && c !== trimmed);
+        if (m) { commandInput.value = m; autocompleteHint.textContent = ''; }
+        return;
+    }
+    if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!history.length) return;
+        historyIndex = Math.min(historyIndex + 1, history.length - 1);
+        commandInput.value = history[historyIndex];
+        return;
+    }
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (historyIndex <= 0) { historyIndex = -1; commandInput.value = ''; return; }
+        commandInput.value = history[--historyIndex];
+        return;
+    }
+    if (e.key === 'Enter') {
+        if (!trimmed) return;
+        history.unshift(trimmed);
+        historyIndex = -1;
+        autocompleteHint.textContent = '';
+        addToOutput(`shadybebu@localhost$ ${val}`, 'command-history');
+
+        if (trimmed === 'clear' || trimmed === 'cls') {
+            outputDiv.innerHTML = '';
+        } else if (commands[trimmed]) {
+            if (commands[trimmed].action) commands[trimmed].action();
+            addToOutput(commands[trimmed].response, 'response');
+        } else {
+            addToOutput(
+                `<span class="error">bash: ${val}: command not found</span>   (type '<span class="highlight">help</span>' for commands)`,
+                'response'
+            );
+        }
+        commandInput.value = '';
+        scrollToBottom();
+    }
+});
+
+function addToOutput(text, cls) {
+    const d = document.createElement('div');
+    if (cls) d.classList.add(cls);
+    d.innerHTML = text;
+    outputDiv.appendChild(d);
+}
+
+function scrollToBottom() {
+    outputDiv.scrollTop = outputDiv.scrollHeight;
+    commandInput.focus();
+}
+
+document.addEventListener('click', () => commandInput.focus());
+</script>
+</body>
+</html>
